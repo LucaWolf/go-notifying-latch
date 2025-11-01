@@ -6,7 +6,7 @@
 
 The `NotifyingLatch` struct provides the following methods:
 
-*   `NewSafeLatch(...)`: Creates a new `NotifyingLatch` instance. The `locked` parameter indicates the initial state of the latch. The `tag` parameter is a helper for tracing.
+*   `NewLatch(...)`: Creates a new `NotifyingLatch` instance. The `locked` parameter indicates the initial state of the latch. The `tag` parameter is a helper for tracing.
 *   `Lock()`: Closes the latch, signaling restricted access to the protected resource. It is idempotent, so if the latch is already locked, it does nothing.
 *   `Unlock()`: Opens the latch, signaling permitted access to the protected resource. It is idempotent, so if the latch is already unlocked, it does nothing.
 *   `Locked()`: Returns `true` if the latch is currently locked.
@@ -28,7 +28,7 @@ import (
 
 func main() {
 	// Create a new NotifyingLatch instance, initially locked.
-	latch := latch.NewSafeLatch(true, "resource-latch")
+	latch := latch.NewLatch(true, "resource-latch")
 
 	// Simulate a resource that requires setup.
 	var resource struct {
@@ -100,12 +100,12 @@ func main() {
 2.  Create a new `NotifyingLatch` instance:
 
     ```go
-    latch := latch.NewSafeLatch(true, "my-latch")
+    latch := latch.NewLatch(true, "my-latch")
     ```
 
-3.  Use the `Lock()` and `Unlock()` methods to control access to the protected resource.
+3.  Resource controller uses the `Lock()` and `Unlock()` methods to signal conditional access to the protected resource.
 
-4.  Use the `Wait()` method to wait for the latch to be in a specific state.
+4.  Consumers use the `Wait()` method to wait for the latch to be in a specific state.
 
 ## License
 
