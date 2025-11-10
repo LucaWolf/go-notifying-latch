@@ -8,11 +8,12 @@ import (
 
 // NotifyingLatch is a concurrency safe latch.
 type NotifyingLatch struct {
-	onLock   chan struct{} // notifies consumers of lock events
-	onUnlock chan struct{} // notifies consumers of unlock events
-	mu       sync.RWMutex  // protects channel and status
-	locked   bool          // current latch position
-	tag      string        // helper for tracing
+	onLock      chan struct{} // notifies consumers of lock events
+	onUnlock    chan struct{} // notifies consumers of unlock events
+	mu          sync.RWMutex  // protects channel and status
+	locked      bool          // current latch position
+	tag         string        // helper for tracing
+	transitions uint64        // counts the status changes (both up and down)
 }
 
 // NewLatch creates a new SafeLatch instance.
@@ -47,6 +48,7 @@ func (s *NotifyingLatch) Lock() {
 	close(s.onLock)                  // raise locked event
 	s.onUnlock = make(chan struct{}) // prepare unlock listeners
 	s.locked = true
+	s.transitions++
 }
 
 // Unlock opens the latch permitting access to the protected resource.
@@ -62,6 +64,7 @@ func (s *NotifyingLatch) Unlock() {
 	close(s.onUnlock)              // raise unlocked event
 	s.onLock = make(chan struct{}) // prepare lock listeners
 	s.locked = false
+	s.transitions++
 }
 
 // Locked returns true if the current status is locked.
@@ -70,6 +73,14 @@ func (s *NotifyingLatch) Locked() bool {
 	defer s.mu.RUnlock()
 
 	return s.locked
+}
+
+// Details returns the name/tag and the current number of transitions
+func (s *NotifyingLatch) Details() (string, uint64) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.tag, s.transitions
 }
 
 // Wait locks till the wantLocked status is raised, timeout expires or context is cancelled.

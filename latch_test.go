@@ -134,3 +134,44 @@ func TestSafeLatch_Wait_AlreadySetup(t *testing.T) {
 		resource.mu.Unlock()
 	})
 }
+
+func TestSafeLatch_Transitions(t *testing.T) {
+	t.Run("transitions are counted correctly", func(t *testing.T) {
+		latch := NewLatch(false, "test-latch")
+		if _, transitions := latch.Details(); transitions != 0 {
+			t.Errorf("Expected 0 transitions, got %d", transitions)
+		}
+
+		latch.Lock()
+		if _, transitions := latch.Details(); transitions != 1 {
+			t.Errorf("Expected 1 transition, got %d", transitions)
+		}
+
+		latch.Unlock()
+		if _, transitions := latch.Details(); transitions != 2 {
+			t.Errorf("Expected 2 transitions, got %d", transitions)
+		}
+
+		latch.Lock()
+		latch.Lock() // idempotent
+		if _, transitions := latch.Details(); transitions != 3 {
+			t.Errorf("Expected 3 transitions, got %d", transitions)
+		}
+
+		latch.Unlock()
+		latch.Unlock() // idempotent
+		if _, transitions := latch.Details(); transitions != 4 {
+			t.Errorf("Expected 4 transitions, got %d", transitions)
+		}
+	})
+}
+
+func TestSafeLatch_Details(t *testing.T) {
+	t.Run("details are returned correctly", func(t *testing.T) {
+		latch := NewLatch(true, "test-latch")
+		tag, _ := latch.Details()
+		if tag != "test-latch" {
+			t.Errorf("Expected tag to be 'test-latch', got %s", tag)
+		}
+	})
+}
